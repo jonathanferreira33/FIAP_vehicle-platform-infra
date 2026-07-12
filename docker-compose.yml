@@ -1,0 +1,63 @@
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  postgres-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: vehicle_db
+
+  mysql-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: payment_db
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  payment-hub:
+    build: ../payment-hub
+    ports:
+      - "8082:8082"
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      mysql-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/payment_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: rootpassword
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+  vehicle-service:
+    build: ../vehicle-service
+    ports:
+      - "8081:8081"
+    depends_on: [rabbitmq, postgres-db]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/vehicle_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+  vehicle-sales-service:
+    build: ../vehicle-sales-service
+    ports:
+      - "8083:8083"
+    depends_on: [rabbitmq, postgres-db]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/vehicle_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_RABBITMQ_HOST: rabbitmq
