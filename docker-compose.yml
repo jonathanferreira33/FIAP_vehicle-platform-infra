@@ -1,7 +1,8 @@
 services:
-
   postgres-db:
     image: postgres:15
+    networks:
+      - app-network
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -9,6 +10,8 @@ services:
 
   mysql-db:
     image: mysql:8
+    networks:
+      - app-network
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: payment_db
@@ -20,6 +23,8 @@ services:
 
   payment-hub:
     build: ../sub-IV-payment-hub
+    networks:
+      - app-network
     ports:
       - "8082:8082"
     depends_on:
@@ -30,19 +35,24 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: rootpassword
 
-
   vehicle-service:
     build: ../vehicle-service
+    networks:
+      - app-network
     ports:
       - "8081:8081"
     depends_on: [postgres-db]
     environment:
+      SERVER_PORT: "8081"
+      SERVER_ADDRESS: "0.0.0.0"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/vehicle_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
 
   vehicle-sales-service:
     build: ../vehicle-sales-service
+    networks:
+      - app-network
     ports:
       - "8083:8083"
     depends_on: [postgres-db]
@@ -50,3 +60,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/vehicle_db
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: password
+
+networks:
+  app-network:
+    driver: bridge

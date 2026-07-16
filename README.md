@@ -11,7 +11,25 @@ Este repositório contém as configurações globais, da orquestração dos cont
 
 ---
 
-## 🏛️ Desenho da Arquitetura
+## Problema
+
+O cenário apresentado é de uma empresa de revenda de veículos que necessita disponibilizar uma API para que um frontend possa realizar todo o gerenciamento da plataforma.
+
+Os principais requisitos são:
+
+-cadastrar veículos;
+
+-atualizar os dados de um veículo;
+
+-listar veículos disponíveis para venda;
+
+-listar veículos vendidos;
+
+-registrar a venda de um veículo;
+
+___
+
+## Desenho da Arquitetura
 
 O sistema é construído utilizando uma **Arquitetura de Microsserviços**, com foco em alta disponibilidade, baixo acoplamento e responsabilidades bem definidas. O ecossistema é composto por 4 repositórios principais:
 
@@ -70,23 +88,6 @@ Para todos os micro serviços uma imagem parecida com a abaixo deve ser observad
 
 ___
 
-## Integração e Entrega Contínuas (CI/CD)
-
-Adotei práticas de CI/CD para garantir a qualidade e a estabilidade do código entregue. A esteira automatizada é construída utilizando o serviço GitHub Actions.
-
-#### Pipeline de Integração (Pull Requests / Pushes)
-Sempre que um novo código é enviado para as branchs principais ou um pull request é aberto, a esteira executa automaticamente os seguintes passos:
-
-1. Setup do ambiente: Provisiona um ambiente Ubuntu com JDK 21.
-
-2. Build da aplicação: Valida a compilação do código (mvn clean package -DskipTests).
-
-3. Execução de testes unitários: Executa todos os testes usando JUnit 5 e Mockito (mvn test).
-
-4. Geração de relatório de Cobertura (Jacoco): Valida se a cobertura de testes atende ao limite mínimo exigido de 80%. O build falha caso a cobertura seja inferior ao limite.
-
-5. Quality gate: Bloqueia merges para a main se qualquer teste falhar ou a compilação quebrar.
-
 
 ## Integração entre os Serviços
 
@@ -127,8 +128,9 @@ Todas as integrações externas possuem tratamento de exceções para evitar que
 * Erros de negócio (`400 Bad Request`, `404 Not Found`) são mapeados para exceções de domínio claras (ex: `VeiculoNaoEncontradoException`, `PagamentoInvalidoException`).
 * Erros de conectividade (`ResourceAccessException`) geram exceções de indisponibilidade (`PagamentoServiceIndisponivelException`), permitindo que a aplicação saiba diferenciar uma regra de negócio quebrada de um serviço fora do ar.
 
+___
 
-### Testes
+## Testes
 
   Todos os serviços utilizam o padrão AAA (Arrange, Act, Assert) em seus testes unitários, pois ele estrutura os testes de unidade dividindo a lógica em três etapas de interpretação.
 
@@ -195,4 +197,51 @@ O trecho de código acima é um recurso conhecido como Quality Gate, aqui defini
 A mensagem "BUILD FAILURE" é exibida alem da outra ao lado esquerdo superior informando que a cobertura ficou abaixo dos 80%. Outros detalhes são vistos no relatório do Jococo disponivel no arquivo "...\vehicle-service\target\site\jacoco\index.html"
 
 ![img_4.png](img_4.png)
+
+___
+
+## Integração e Entrega Contínuas (CI/CD)
+
+Adotei práticas de CI/CD para garantir a qualidade e a estabilidade do código entregue. A esteira automatizada é construída utilizando o serviço GitHub Actions.
+
+#### Pipeline de Integração (Pull Requests / Pushes)
+Sempre que um novo código é enviado para as branchs principais ou um pull request é aberto, a esteira executa automaticamente os seguintes passos:
+
+1. Setup do ambiente: Provisiona um ambiente Ubuntu com JDK 21.
+
+2. Build da aplicação: Valida a compilação do código (mvn clean package -DskipTests).
+
+3. Execução de testes unitários: Executa todos os testes usando JUnit 5 e Mockito (mvn test).
+
+4. Geração de relatório de Cobertura (Jacoco): Valida se a cobertura de testes atende ao limite mínimo exigido de 80%. O build falha caso a cobertura seja inferior ao limite.
+
+5. Quality gate: Bloqueia merges para a main se qualquer teste falhar ou a compilação quebrar.
+
+### Roadmap
+- [ ] Implementar sistema autenticação via OAuth2
+- [ ] Implementar sistema de logs centralizados
+- [ ] Criar serviço exclusivo para Webhook centralizar as diversas atualizações sobre venda, pagamento e estoque
+- [ ] Melhorar a cobertura de testes unitários para todos os serviços
+
+### Comandos uteis Docker
+
+``` docker
+docker compose down -v
+
+docker compose up -d --build
+
+docker compose logs -f payment-hub
+docker compose logs -f vehicle-sales-service
+docker compose logs -f vehicle-service
+
+docker exec -it sub-iv_infra-postgres-db-1 psql -U user -d vehicle_db 
+\dt
+SELECT * FROM tb_vendas_veiculo;
+SELECT * FROM tb_veiculos;
+SELECT * FROM tb_pagamentos ;
+
+docker exec -it sub-iv_infra-mysql-db-1 mysql -u root -prootpassword payment_db
+SHOW TABLES; 
+SELECT * FROM tb_payments;
+```
 
